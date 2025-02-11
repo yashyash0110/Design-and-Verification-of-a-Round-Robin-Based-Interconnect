@@ -3,6 +3,7 @@
 The idea is to design and verify an interconnect that uses a round-robin arbiter to handle memory access requests from multiple masters. For now, I’m considering two masters, but I might scale it later. I’ve attached a block diagram to make it easier to understand.
 
 ---
+![image](https://github.com/user-attachments/assets/12facb33-2a43-4c27-8805-b82baa5156f8)
 
 ## Why This Project?
 The main reason I picked this project is that I know the basics of SystemVerilog and UVM, but I feel like only by applying them in a project I’ll really understand how to use them effectively and learn them in depth. So, this project is more of a learning experience for me.
