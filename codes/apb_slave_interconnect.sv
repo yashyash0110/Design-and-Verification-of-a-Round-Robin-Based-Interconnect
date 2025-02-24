@@ -28,6 +28,12 @@ fifo_clk,fifo_reset,push_in,push_data_in,full_o,empty_o,arb_rdata_ack);
   input logic arb_rdata_ack;
   input logic [31:0] arb_rdata;
 
+  assign fifo_clk = PCLK;
+  assign fifo_reset = PRESET;
+
+  //The APB Master may change PWDATA and PADDR after PENABLE
+  logic [31:0] latched_wdata,latched_addr;
+
   assign PRDATA = arb_rdata;
   
   typedef enum logic [1:0] {IDLE,SETUP,ACCESS,ACK} apb_state;
@@ -39,7 +45,7 @@ fifo_clk,fifo_reset,push_in,push_data_in,full_o,empty_o,arb_rdata_ack);
     begin
       if(!PRESET) begin
         current_state <= IDLE;
-        next_state <= current_state;
+        next_state <= IDLE;
       end
       else
         current_state <= next_state;
@@ -49,46 +55,76 @@ fifo_clk,fifo_reset,push_in,push_data_in,full_o,empty_o,arb_rdata_ack);
     begin
       case(current_state)
         IDLE: begin
-          next_state = SETUP;
+          PREADY=0;
+          PSLVERR=0;
+          fifo_write = 0;
+          push_in = 0;
+          push_wdata_in = 32'b0;
+          push_addr_in = 32'b0;
+          if(PSEL)
+            next_state = SETUP;
+          else
+            next_state = IDLE;
         end
         
         SETUP: begin
-            if(PSEL)
-                next_state = ACCESS; 
+            PSLVERR=0;
+            if(PSEL) begin
+                if(PADDR > `DEPTH_ADDR-1)
+                    begin
+                        PSLVERR=1;  
+                        next_state = IDLE;
+                    end
+                else begin
+                    next_state = ACCESS;
+                end
+            end
         end
 
         ACCESS:
             begin
-              if(PADDR>`DEPTH_ADDR-1)
-                PSLVERR=1;  
-              else 
-                begin
-                    if(PENABLE & PWRITE) //WRITE
-                        begin
-                          fifo_write=1;
-                          if(!full_o) begin
-                            push_in=1;
-                            push_wdata_in = PWDATA;
-                          end
+                if(PENABLE & PWRITE) //WRITE
+                    begin
+                        if(!full_o) begin
+                        fifo_write=1;
+                        push_in =1;
+                        push_wdata_in = latched_wdata;
+                        push_addr_in = latched_addr;
+                        next_state = ACK;
                         end
-                    else if(!(PENABLE & PWRITE)) //READ
+                        else
                         begin
-                            fifo_write=0;
+                            next_state = ACCESS;
                         end
+                    end
+                else if(!(PENABLE & PWRITE)) //READ
+                    begin
+                        fifo_write =0;
+                        push_addr_in = latched_addr;
+                        next_state = ACK;
+                    end
                 end
-                push_addr_in = PADDR;
-                PSLVERR=0;
-                next_state = ACK;
-            end
         ACK: //Waiting for the acknowledgements from the FIFO and ARBITER
             begin
+                PREADY=0;
                 //WRITE 
                 if(fifo_data_in_ack)
                     PREADY=1;
                 //READ
-                if(arb_rdata_ack)
+                else if(arb_rdata_ack)
                     PREADY=1;
                 next_state = IDLE;
             end
-        
+
+        always_ff@(posedge PCLK or negedge PRESET)
+            begin
+                if (!PRESET) begin
+                    latched_wdata <= 32'b0;
+                    latched_addr <= 32'b0;
+                end
+                else if (current_state == SETUP & PADDR <= DEPTH_ADDR-1) begin
+                    latched_wdata <= PWDATA;
+                    latched_addr <= PADDR;
+                end
+            end  
 endmodule
