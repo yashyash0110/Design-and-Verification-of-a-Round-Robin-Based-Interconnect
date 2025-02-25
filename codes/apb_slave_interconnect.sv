@@ -30,6 +30,7 @@ fifo_clk,fifo_reset,push_in,push_data_in,full_o,empty_o,arb_rdata_ack);
 
   assign fifo_clk = PCLK;
   assign fifo_reset = PRESET;
+  assign fifo_write = PWRITE;
 
   //The APB Master may change PWDATA and PADDR after PENABLE
   logic [31:0] latched_wdata,latched_addr;
