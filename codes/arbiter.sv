@@ -5,12 +5,12 @@ module round_robin_arbiter(clk,reset,REQ,GNT);//Fixed time slices
   output logic [3:0] GNT;
 
   typedef enum logic [3:0] {
-    IDEAL = 4'b0000;
-    STATE0 = 4'b0001;
-    STATE1 = 4'b0010;
-    STATE2 = 4'b0100;
-    STATE3 = 4'b1000;
-  }arb_state;
+    IDEAL = 4'b0000,
+    STATE0 = 4'b0001,
+    STATE1 = 4'b0010,
+    STATE2 = 4'b0100,
+    STATE3 = 4'b1000
+  } arb_state;
   
   arb_state current_state,next_state;
   
