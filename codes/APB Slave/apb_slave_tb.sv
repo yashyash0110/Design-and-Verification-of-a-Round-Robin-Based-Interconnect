@@ -22,16 +22,32 @@ module apb_slave_tb;
 
   // Instantiate the APB Slave Interconnect
   apb_slave_interconnect uut (
-    .PCLK(PCLK), .PRESET(PRESET), .PWRITE(PWRITE), .PSEL(PSEL), .PENABLE(PENABLE),
-    .PADDR(PADDR), .PWDATA(PWDATA), .PRDATA(PRDATA), .PREADY(PREADY), .PSLVERR(PSLVERR),
-    .fifo_clk(fifo_clk), .fifo_reset(fifo_reset), .push_in(push_in),
-    .push_data_in(push_wdata_in), .full_o(full_o), .empty_o(empty_o),
-    .arb_rdata_ack(arb_rdata_ack), .arb_rdata(arb_rdata)
+    .PCLK (PCLK),
+    .PRESET (PRESET),
+    .PWRITE (PWRITE),
+    .PSEL (PSEL),
+    .PENABLE (PENABLE),
+    .PADDR (PADDR),
+    .PWDATA (PWDATA),
+    .PRDATA (PRDATA),
+    .PREADY (PREADY),
+    .PSLVERR (PSLVERR),
+    .fifo_clk (fifo_clk),
+    .fifo_reset (fifo_reset),
+    .push_in (push_in),
+    .push_wdata_in (push_wdata_in),
+    .push_addr_in (push_addr_in),   
+    .fifo_write (fifo_write),       
+    .fifo_data_in_ack (fifo_data_in_ack),
+    .full_o (full_o),
+    .empty_o (empty_o),
+    .arb_rdata_ack (arb_rdata_ack),
+    .arb_rdata (arb_rdata)
   );
 
   // Clock Generation
   always #5 PCLK = ~PCLK;
-  
+
   // Test Sequence
   initial begin
     // Initialize signals
@@ -50,13 +66,13 @@ module apb_slave_tb;
     
     // Reset Pulse
     #10 PRESET = 1;
-    
+
     // Write Transaction
     #10 PSEL = 1; PWRITE = 1; PADDR = 32'h00000010; PWDATA = 32'hA5A5A5A5;
     #10 PENABLE = 1;
     #10 PENABLE = 0; fifo_data_in_ack = 1;
     #10 fifo_data_in_ack = 0;
-    
+
     // Read Transaction
     #10 PSEL = 1; PWRITE = 0; PADDR = 32'h00000010;
     #10 PENABLE = 1;
@@ -65,6 +81,17 @@ module apb_slave_tb;
     
     // Finish Simulation
     #50 $finish;
+  end
+  
+    // Monitor Signals
+  initial begin
+    $monitor("Time: %0t | PSEL: %b | PENABLE: %b | PWRITE: %b | PADDR: 0x%08X | PWDATA: 0x%08X | PRDATA: 0x%08X | PREADY: %b | FIFO Write: %b | Arb RDATA Ack: %b",
+             $time, PSEL, PENABLE, PWRITE, PADDR, PWDATA, PRDATA, PREADY, fifo_write, arb_rdata_ack);
+  end
+  
+  initial begin
+    $dumpfile("dump.vcd");
+    $dumpvars;
   end
 
 endmodule
