@@ -28,7 +28,7 @@ module apb_slave_fifo(clk,reset,push_in,pop_in,push_wdata_in,push_addr_in,pop_wd
     POP=2'b10,
     BOTH=2'b11}fifo_state;
   
-  localparam PTR_W = $clog2(`DEPTH_FIFO) //Pointers width in bits
+  localparam PTR_W = $clog2(`DEPTH_FIFO); //Pointers width in bits
   
   logic [31:0] fifo_wdata_regs [7:0]; //To store write data
   logic [31:0] fifo_addr_regs [7:0]; //To store address
