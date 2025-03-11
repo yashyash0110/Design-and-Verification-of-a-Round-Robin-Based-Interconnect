@@ -1,70 +1,69 @@
-`timescale 1ns/1ps
-
-module apb_slave_tb;
-
-  // APB Interface Signals
+module apb_master_tb;
+  logic ctl_fsm;
   logic PCLK, PRESET, PWRITE, PSEL, PENABLE;
   logic [31:0] PADDR, PWDATA;
   logic [31:0] PRDATA;
   logic PREADY, PSLVERR;
   
-  // FIFO Interface Signals
-  logic fifo_clk, fifo_reset;
-  logic push_in;
-  logic [31:0] push_wdata_in, push_addr_in;
-  logic fifo_write;
-  logic fifo_data_in_ack;
-  logic full_o, empty_o;
-  
-  // Arbiter Interface Signals
-  logic arb_rdata_ack;
-  logic [31:0] arb_rdata;
+  // Clock generation
+  initial begin
+    PCLK = 0;
+    forever #5 PCLK = ~PCLK; // 10ns clock period
+  end
 
-  // Instantiate the APB Slave Interconnect
-  apb_slave_interconnect uut (
-    .PCLK(PCLK), .PRESET(PRESET), .PWRITE(PWRITE), .PSEL(PSEL), .PENABLE(PENABLE),
-    .PADDR(PADDR), .PWDATA(PWDATA), .PRDATA(PRDATA), .PREADY(PREADY), .PSLVERR(PSLVERR),
-    .fifo_clk(fifo_clk), .fifo_reset(fifo_reset), .push_in(push_in),
-    .push_data_in(push_wdata_in), .full_o(full_o), .empty_o(empty_o),
-    .arb_rdata_ack(arb_rdata_ack), .arb_rdata(arb_rdata)
+  // Instantiate APB Master
+  apb_master uut (
+    .ctl_fsm(ctl_fsm),
+    .PCLK(PCLK),
+    .PRESET(PRESET),
+    .PADDR(PADDR),
+    .PWDATA(PWDATA),
+    .PWRITE(PWRITE),
+    .PSEL(PSEL),
+    .PENABLE(PENABLE),
+    .PRDATA(PRDATA),
+    .PREADY(PREADY),
+    .PSLVERR(PSLVERR)
   );
 
-  // Clock Generation
-  always #5 PCLK = ~PCLK;
-  
-  // Test Sequence
+  // Test sequence
   initial begin
     // Initialize signals
-    PCLK = 0;
     PRESET = 0;
-    PSEL = 0;
-    PENABLE = 0;
-    PWRITE = 0;
-    PADDR = 0;
-    PWDATA = 0;
-    fifo_data_in_ack = 0;
-    full_o = 0;
-    empty_o = 1;
-    arb_rdata_ack = 0;
-    arb_rdata = 32'hDEADBEEF;
+    ctl_fsm = 0;
+    PREADY = 0;
+    PSLVERR = 0;
+    PRDATA = 32'hABCD_EF01;
     
-    // Reset Pulse
-    #10 PRESET = 1;
+    #20 PRESET = 1; // Release reset
     
-    // Write Transaction
-    #10 PSEL = 1; PWRITE = 1; PADDR = 32'h00000010; PWDATA = 32'hA5A5A5A5;
-    #10 PENABLE = 1;
-    #10 PENABLE = 0; fifo_data_in_ack = 1;
-    #10 fifo_data_in_ack = 0;
+    // Start transaction
+    #10 ctl_fsm = 1;
+    #10 ctl_fsm = 0;
     
-    // Read Transaction
-    #10 PSEL = 1; PWRITE = 0; PADDR = 32'h00000010;
-    #10 PENABLE = 1;
-    #10 PENABLE = 0; arb_rdata_ack = 1;
-    #10 arb_rdata_ack = 0;
+    // Simulate PREADY high (transaction completes)
+    #20 PREADY = 1;
+    #10 PREADY = 0;
+
+    // Simulate an error
+    #20 PSLVERR = 1;
+    #10 PSLVERR = 0;
     
-    // Finish Simulation
-    #50 $finish;
+    #10 ctl_fsm = 1;
+    #10 ctl_fsm = 0;
+
+    // Run for a while and finish
+    #200 $finish;
+  end
+
+  // Monitor signals
+  initial begin
+    $monitor($time, " PADDR=%h PWDATA=%h PWRITE=%b PSEL=%b PENABLE=%b PREADY=%b PSLVERR=%b", PADDR, PWDATA, PWRITE, PSEL, PENABLE, PREADY, PSLVERR);
+  end
+  
+  initial begin
+    $dumpfile("dump.vcd");
+    $dumpvars;
   end
 
 endmodule
