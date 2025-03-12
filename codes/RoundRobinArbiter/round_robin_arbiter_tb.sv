@@ -1,108 +1,33 @@
-module round_robin_arbiter(clk,reset,REQ,GNT);//Fixed time slices
-  input logic clk;
-  input logic reset;
-  input logic [3:0] REQ;
-  output logic [3:0] GNT;
-
-  typedef enum logic [3:0] {
-    IDEAL = 4'b0000,
-    STATE0 = 4'b0001,
-    STATE1 = 4'b0010,
-    STATE2 = 4'b0100,
-    STATE3 = 4'b1000
-  } arb_state;
+module testbench();
+  reg clk;
+  reg rst;
+  reg [3:0]REQ;
+  wire [3:0]GNT;
   
-  arb_state current_state,next_state;
+  //Instantiation of DUT
+  round_robin_arbiter dut(.clk(clk),.reset(rst),.REQ(REQ),.GNT(GNT));
   
-  always_ff@(posedge clk or negedge reset)
-    begin
-      if(!reset)
-        current_state <= IDEAL;
-      else
-        current_state <= next_state;
-    end
-  
-  always_comb 
-    begin
-      case(current_state)
-        IDEAL:
-          begin
-            if(REQ[0])
-              next_state=STATE0;
-            else if(REQ[1])
-              next_state=STATE1;
-            else if(REQ[2])
-              next_state=STATE2;
-            else if(REQ[3])
-              next_state=STATE3;
-            else
-              next_state=IDEAL;
-          end
-        
-        STATE0:
-          begin
-            if(REQ[1])
-             next_state=STATE1;
-           else if(REQ[2])
-             next_state=STATE2;
-           else if(REQ[3])
-             next_state=STATE3;
-           else if(REQ[0])
-             next_state=STATE0;
-           else
-             next_state=IDEAL;
-          end
-        STATE1:
-          begin
-            if(REQ[2])
-             next_state=STATE2;
-            else if(REQ[3])
-             next_state=STATE3;
-            else if(REQ[0])
-             next_state=STATE0;
-            else if(REQ[1])
-             next_state=STATE1;
-           	else
-             next_state=IDEAL;
-          end
-        STATE2:
-          begin
-            if(REQ[3])
-             next_state=STATE3;
-            else if(REQ[0])
-             next_state=STATE0;
-            else if(REQ[1])
-             next_state=STATE1;
-            else if(REQ[2])
-             next_state=STATE2;
-           	else
-             next_state=IDEAL;
-          end
-        STATE3:
-          begin
-            if(REQ[0])
-             next_state=STATE0;
-            else if(REQ[1])
-             next_state=STATE1;
-            else if(REQ[2])
-             next_state=STATE2;
-            else if(REQ[3])
-             next_state=STATE3;
-           	else
-             next_state=IDEAL;
-          end
-      endcase
+  initial begin
+    clk=0;
+    forever #5 clk=~clk;
   end
   
-  always_comb
-    begin
-      case(current_state)
-        STATE0: GNT=4'b0001;
-        STATE1: GNT=4'b0010;
-        STATE2: GNT=4'b0100;
-        STATE3: GNT=4'b1000;
-        default: GNT=4'b0000;
-      endcase
-    end
+  initial begin
+    rst=0;
+    REQ=4'b0000;
+    #5 rst=1;
+    while($time<=50)
+      @(negedge clk) REQ=$random;
+    #10 rst=0; 
+    $finish;
+  end
   
+  initial begin
+    $monitor("%d Clk:%b Reset:%b REQ:%b GNT:%b",$time,clk,rst,REQ,GNT);
+  end
+  
+  initial begin
+    $dumpfile("dump.vcd");
+    $dumpvars;
+  end
 endmodule
