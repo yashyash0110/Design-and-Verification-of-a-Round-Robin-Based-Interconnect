@@ -18,9 +18,6 @@ module top;
   
   logic clk,reset;
   
-  //Interface Instance
-  arb_intf arbif(.clk(clk),.reset(reset));
-  
   //Clock Generation
   initial begin
     clk = 1'b0;
@@ -32,6 +29,14 @@ module top;
     reset = 1'b0;
     #20 reset = 1'b1;
   end
+  
+  //Interface Instance
+  arb_intf arbif(.clk(clk),.reset(reset));
+  
+  
+  //DUT Instantiation
+  round_robin_arbiter dut(.clk(clk),.reset(reset),.REQ(arbif.REQ),.GNT(arbif.GNT),.master_in_data(arbif.master_in_data),.master_out_data(arbif.master_out_data),.rdata(arbif.rdata),.rdata_ack(arbif.rdata_ack),.slave_rdata(arbif.slave_rdata),.slave_rdata_ack(arbif.slave_rdata_ack));
+  
   
   //Set config db
   initial begin
