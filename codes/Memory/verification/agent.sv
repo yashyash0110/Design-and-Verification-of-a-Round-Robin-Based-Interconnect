@@ -1,9 +1,9 @@
-class config_arb extends uvm_object;
-  `uvm_object_utils(config_arb)
+class config_apb extends uvm_object;
+  `uvm_object_utils(config_apb)
 
   uvm_active_passive_enum agent_type = UVM_ACTIVE;
 
-  function new(string name = "config_arb");
+  function new(string name = "config_apb");
     super.new(name);
   endfunction
 endclass
@@ -16,7 +16,7 @@ class agent extends uvm_agent;
   driver drv;
   monitor mon;
   
-  config_arb cfg;
+  config_apb cfg;
   
   function new(string name = "agent",uvm_component parent);
     super.new(name,parent);
@@ -27,10 +27,10 @@ class agent extends uvm_agent;
     
     mon = monitor::type_id::create("mon",this);  
     
-    cfg = config_arb::type_id::create("cfg",this);
+    cfg = config_apb::type_id::create("cfg",this);
     seqr = sequencer::type_id::create("seqr",this);
     
-    if(!uvm_config_db#(config_arb)::get(this,"","cfg",cfg))
+    if(!uvm_config_db#(config_apb)::get(this,"","cfg",cfg))
       `uvm_error(get_type_name(),"Failed to access config")
     
     if(cfg.agent_type == UVM_ACTIVE)
